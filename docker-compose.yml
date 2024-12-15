@@ -1,15 +1,20 @@
 version: '3.6'
 services:
   telegraf:
-    image: telegraf:1.18-alpine
+    image: telegraf:latest
+    user: telegraf:0
     volumes:
     - ./telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - influxdb
+      - mongodb
     links:
       - influxdb
     ports:
     - '127.0.0.1:8125:8125/udp'
+    networks:
+      - monitoring-net
 
   influxdb:
     image: influxdb:1.8-alpine
@@ -19,6 +24,8 @@ services:
     volumes:
       - ./:/imports
       - influxdb_data:/var/lib/influxdb
+    networks:
+      - monitoring-net
 
   grafana:
     image: grafana/grafana:8.0.2
@@ -33,7 +40,63 @@ services:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning/:/etc/grafana/provisioning/
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+    networks:
+      - monitoring-net
+
+  elasticsearch:
+    image: elasticsearch:8.16.1
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"   # Expose HTTP API
+      - "9300:9300"   # Expose transport port (for inter-node communication)
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node  # Crucial for single-node setup
+      - xpack.security.enabled=false # Disable security for simplicity (enable in production!)
+      # - ES_JAVA_OPTS=-Xms512m -Xmx512m # Adjust JVM heap size if needed
+    networks:
+      monitoring-net:
+
+  nginx:
+    image: nginx:latest # Or a specific version (e.g., nginx:1.23)
+    ports:
+      - "80:80" # Map port 80 on the host to port 80 in the container
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d # Mount your Nginx config files
+      - ./static:/usr/share/nginx/html/static  # if you have a static directory to serve
+    networks:
+      monitoring-net:
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      monitoring-net:
+
+  movie-service:
+    build: ./movie-service # Path to your Flask app directory (containing the Dockerfile)
+    ports:
+      - "9000:9000"
+    depends_on:
+      - mongodb
+      - elasticsearch
+      - nginx
+    environment:
+      - FLASK_APP=app.py  # Or whatever the main file of your Flask app is called
+      - FLASK_ENV=development # Set accordingly
+    networks:
+      monitoring-net:
 
 volumes:
   grafana_data: {}
   influxdb_data: {}
+  elasticsearch_data: {}
+  mongodb_data: {}
+
+networks:
+  monitoring-net: {}

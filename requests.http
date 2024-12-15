@@ -1,0 +1,61 @@
+# curl -X GET -H "Content-Type: application/json" "http://localhost:9200/movies/_search?size=10000"
+GET http://localhost:9200/movies/_search?size=10
+Content-Type: application/json
+
+###
+
+GET http://localhost:9200/movies/_search?size=10
+Content-Type: application/json
+
+{
+  "query": {
+    "bool": {  // Use a bool query to combine filters
+      "must": [
+        {
+          "terms": {
+            "Director.keyword": [
+              "Steven Spielberg",
+              "Christopher Nolan",
+              "David Fincher"
+            ]
+          }
+        }
+      ],
+      "should": [
+        {
+          "match": {
+            "Genre": "Action"
+          }
+        }
+      ]
+    }
+  }
+}
+
+###
+
+GET http://127.0.0.1:9000/users/675ea176ba2cc3a351f4fccb
+Content-Type: application/json
+
+
+###
+
+GET http://127.0.0.1:9000/users/username/user_1
+Content-Type: application/json
+
+###
+
+GET http://127.0.0.1:9000/watched/675ea176ba2cc3a351f4fccb
+Content-Type: application/json
+
+###
+
+GET http://127.0.0.1:9000/recommendations/675ea176ba2cc3a351f4fccb
+Content-Type: application/json
+
+
+###
+
+GET http://127.0.0.1:80/recommendations/675ea176ba2cc3a351f4fccb
+Content-Type: application/json
+

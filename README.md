@@ -1,8 +1,6 @@
 # Example Docker Compose project for Telegraf, InfluxDB and Grafana
 
-This an example project to show the TIG (Telegraf, InfluxDB and Grafana) stack.
-
-![Example Screenshot](./example.png?raw=true "Example Screenshot")
+This example project demonstrates the TIG (Telegraf, InfluxDB, and Grafana) stack and includes a sample Flask application (`movie-service`) with load testing and data generation capabilities.
 
 ## Start the stack with docker compose
 
@@ -26,7 +24,6 @@ $ docker-compose up
 - Password: admin 
 - Database: influx
 
-
 Run the influx client:
 
 ```bash
@@ -49,25 +46,44 @@ InfluxDB shell version: 1.8.0
 $ docker-compose exec -w /imports influxdb influx -import -path=data.txt -precision=s
 ```
 
-## Run the PHP Example
+### Nginx
+- Port: 80 (Reverse proxy for movie-service and Grafana)
+- Routes:
+    - `/grafana/`: Access Grafana UI.
+    - `/`: Access `movie-service` API.
 
-The PHP example generates random example metrics. The random metrics are beeing sent via UDP to the telegraf agent using the StatsD protocol.
+### movie-service (Flask application)
+- Internal Port: 9000 (Nginx handles external access)
+- API Endpoints:
+    - `/recommendations/{user_id}`: Get movie recommendations.
+    - `/watched/{user_id}`: Get watched movies.
+    - `/users/{user_id}`: Get user details.
+    - `/users/username/{userName}`: Get user details using username.
 
-The telegraf agents aggregates the incoming data and perodically persists the data into the InfluxDB database.
+## Load Testing
+The `load_test.sh` script simulates user traffic to the `/recommendations` and
+`/watched` API endpoints. It uses `ab` (Apache Benchmark) to generate load with
+configurable parameters:
+- **Configuration:** Modify `load_test.sh` to adjust the `num_requests`,
+  `concurrency`, `base_url`, and `user_ids` variables to customize your load
+  tests.
+- **Nginx:** Nginx acts as a reverse proxy, routing traffic to the
+  `movie-service` container.
 
-Grafana connects to the InfluxDB database and is able to visualize the incoming data.
+## Data Generator
+* Describe your data generation process if applicable. If you have a script or
+process to populate Elasticsearch/MongoDB, explain it here. 
+* The `data_generator.py` script populates the Elasticsearch database with sample
+movie data. It retrieves movie information from a CSV file and indexes it into
+Elasticsearch. Run the script as follows:
 
-```bash
-$ cd php-example
-$ composer install
-$ php example.php
-Sending Random metrics. Use Ctrl+C to stop.
-..........................^C
-Runtime:	0.88382697105408 Seconds
-Ops:		27 
-Ops/s:		30.548965899738 
-Killed by Ctrl+C
-```
+# Screenshots
+
+Here are some screenshots of the grafana dashboard:
+
+<!-- Screenshots -->
+$(ls screenshots/*.png | while read image; do echo "![$(basename "$image" .png)]($image)"; done)
+<!-- End Screenshots -->
 
 ## License
 
